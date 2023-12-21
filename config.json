@@ -1,5 +1,11 @@
 {
     "start/stop_keybind": "F3",
+    "exit_keybind": "F9",
+    "click_length": 60,
+    "pause_length": 10,
+    "food_and_water_timer": 3600,
+    "food_slot": 6,
+    "water_slot": 7,
     "window_names": {
             "1": "ArkAscended",
             "2": "ARK: Survival Ascended on GeForce NOW"

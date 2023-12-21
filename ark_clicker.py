@@ -1,37 +1,88 @@
+__author__ = "itsyeboi"
+__version__ = "0.0.1"
+
 import time
 import json
+import os
+import threading
 from ahk import AHK
 
 ahk = AHK()
 
-win = ahk.win_get(title="ARK: Survival Ascended on GeForce NOW")
+
+def startup():
+    print(f"ARK Clicker v{__version__}")
+    print(f"Press {config['start/stop_keybind']} to start/stop clicking")
+    print(f"Press {config['exit_keybind']} to exit")
+
+
+config_file = open("config.json")
+config = json.load(config_file)
+values = []
+for key, value in config["window_names"].items():
+    win = ahk.win_get(title=value)
+    if win:
+        print(f"Window selected: {value}")
+        break
+else:
+    print("Window not found\nExiting...")
+    exit()
 
 is_click_enabled = False
-count = 0
+key_press_thread = None
 
 
-def test_click():
-    global is_click_enabled, count
+def force_quit():
+    print("Exiting...")
+    os._exit(1)
+
+
+def press_keys():
+    while True:
+        if is_click_enabled == True:
+            time.sleep(config["food_and_water_timer"])
+            win.send(str(config["food_slot"]))
+            win.send(str(config["water_slot"]))
+            print("Food and Water done")
+        elif is_click_enabled == False:
+            break
+
+
+def clicker(click_length, pause_length):
+    global is_click_enabled, key_press_thread
     start_time = time.time()
-    while is_click_enabled and time.time() - start_time < 60:
-        print(f"Current Timer: {count} seconds")
+
+    if key_press_thread is None or not key_press_thread.is_alive():
+        key_press_thread = threading.Thread(target=press_keys)
+        key_press_thread.start()
+
+    while is_click_enabled == True and time.time() - start_time < click_length:
         win.click(x=965, y=452, click_count=2)
         time.sleep(1)
-        count += 1
-    time.sleep(10)
+    time.sleep(pause_length)
     if is_click_enabled:
-        test_click()  # Loop the code again after sleeping for 10 seconds
+        clicker(config["click_length"], config["pause_length"])
 
 
 def toggle_click():
-    global is_click_enabled, count
-    count = 0
+    global is_click_enabled
     is_click_enabled = not is_click_enabled
-    print(f"Clicking {is_click_enabled}")
-    test_click()
+    clicking_value = is_click_enabled
+    if is_click_enabled == True:
+        clicking_value = "enabled"
+    elif is_click_enabled == False:
+        clicking_value = "disabled"
+    print(f"Clicking {clicking_value}")
+    if config["start/stop_keybind"]:
+        clicker(config["click_length"], config["pause_length"])
+    elif config["start/stop_keybind"] == False:
+        print("Clicking is disabled")
 
 
-config = json.load(open("config.json"))
-ahk.add_hotkey(config["start/stop_keybind"], callback=toggle_click)
-ahk.start_hotkeys()
-ahk.block_forever()
+if __name__ == "__main__":
+    startup()
+    ahk.add_hotkey(config["exit_keybind"], callback=force_quit)
+    ahk.add_hotkey(config["start/stop_keybind"], callback=toggle_click)
+    config_file.close()
+    ahk.start_hotkeys()
+    ahk.block_forever()
